@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Segment Intersection</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="myCanvas"></canvas>
+    <script>
+        myCanvas.width = window.innerWidth;
+        myCanvas.height = window.innerHeight;
+
+        const A = { x: 200, y: 150 };
+        const B = { x: 150, y: 250 };
+        const C = { x: 50, y: 100 };
+        const D = { x: 250, y: 200 };
+
+        const ctx = myCanvas.getContext("2d");
+
+        let angle=0;
+        const mouse = {x:0, y:0};
+        document.onmousemove=(event)=>{
+            mouse.x = event.x;
+            mouse.y = event.y;
+        }
+
+        // let t = -1;
+        animate();
+
+        function animate() {
+            const radius = 50;
+            A.x = mouse.x + Math.cos(angle) * radius;
+            A.y = mouse.y - Math.sin(angle) * radius;
+            B.x = mouse.x - Math.cos(angle) * radius;
+            B.y = mouse.y + Math.sin(angle) * radius;
+            angle+=0.02;
+
+            ctx.clearRect(0, 0, myCanvas.width, myCanvas.height);
+
+            //draw lines from A-B, C-D
+            ctx.beginPath();
+            ctx.moveTo(A.x, A.y);
+            ctx.lineTo(B.x, B.y);
+            ctx.moveTo(C.x, C.y);
+            ctx.lineTo(D.x, D.y);
+            ctx.stroke();
+
+            drawDot(A, "A");
+            drawDot(B, "B");
+            drawDot(C, "C");
+            drawDot(D, "D");
+
+            const I = getIntersection(A, B, C, D);
+            if (I){
+                drawDot(I, "I");
+            }
+
+            //show visualization of the denominator of the getIntersection code
+            // ctx.beginPath();
+            // ctx.rect(myCanvas.width/2, 0, I.bottom/100, 10);
+            // ctx.fill();
+
+            //midpoint between segment AB
+            // const M = {
+            //     x: lerp(A.x, B.x, 0.5),
+            //     y: lerp(A.y, B.y, 0.5)
+            // }
+
+            // const N = {
+            //     x: lerp(C.x, D.x, 0.5),
+            //     y: lerp(C.y, D.y, 0.5)
+            // }
+
+            // drawDot(M, "M", t < 0 || t > 1);
+            // drawDot(N, "N", t < 0 || t > 1);
+            // t += 0.005;
+
+
+            requestAnimationFrame(animate);
+
+        }
+
+        function getIntersection(A, B, C, D) {
+            /*
+            Ix and Iy are the points where these 2 lines intersect
+            1. Ix = Ax+(Bx-Ax)t = Cx+(Dx-Cx)u
+            2. Iy = Ay+(By-Ay)t = Cy+(Dy-Cy)u
+
+            Equation 1:
+            a) Let's subtract Cx from both sides in equation 1:
+            (Ax-Cx) + (Bx-Ax)t = (Dx-Cx)u
+
+            Equation 2:
+            a) Let's subtract Cy from both sides in equation 2:
+            (Ay-Cy) + (By-Ay)t = (Dy-Cy)u
+
+            b) Multiply both sides by (Dx-Cx) in equation 2:
+            (Dx-Cx)(Ay-Cy) + (Dx-Cx)(By-Ay)t = (Dy-Cy)(Dx-Cx)u
+
+            c) Substitute equation 1 into equation 2: (Dx-Cx)u = ....
+            (Dx-Cx)(Ay-Cy) + (Dx-Cx)(By-Ay)t = (Dy-Cy)((Ax-Cx)+(Bx-Ax)t)
+
+            d) Expand the right side:
+             (Dx-Cx)(Ay-Cy) + (Dx-Cx)(By-Ay)t = (Dy-Cy)(Ax-Cx) + (Dy-Cy)(Bx-Ax)t
+
+            e) Subtract (Dy-Cy)(Ax-Cx) and (Dx-Cx)(By-Ay)t from both sides
+            (Dx-Cx)(Ay-Cy) - (Dy-Cy)(Ax-Cx) = 
+            (Dy-Cy)(Bx-Ax)t - (Dx-Cx)(By-Ay)t
+
+            f) Solve for t:
+            t = (Dx-Cx)(Ay-Cy)-(Dy-Cy)(Ax-Cx) / (Dy-Cy)(Bx-Ax)-(Dx-Cx)(By-Ay)
+
+            g) Break into variables:
+            top = (Dx-Cx)(Ay-Cy)-(Dy-Cy)(Ax-Cx)
+            bottom = (Dy-Cy)(Bx-Ax)-(Dx-Cx)(By-Ay)
+            t = top / bottom
+
+            But, also make sure bottom != 0
+
+            */
+
+            //find numerator and deonominator when solving for t
+            const tTop = (D.x - C.x) * (A.y - C.y) - (D.y - C.y) * (A.x - C.x);
+            const bottom = (D.y - C.y) * (B.x - A.x) - (D.x - C.x) * (B.y - A.y);
+           
+            //numerator when solving for u (instead of t):
+            //note: denominator when solving for u is the same as when solving for t.
+            const uTop = (C.y-A.y)*(A.x-B.x)-(C.x-A.x)*(A.y-B.y);
+
+
+            //check if denominator is zero
+            if(bottom!=0){
+                const t = tTop / bottom;
+                const u = uTop / bottom;
+                //check that t is between 0..1, so that we get the intersection of the segements
+                //and NOT the intersection of (infinitely long) lines
+                if (t>=0 && t<=1 && u>=0 && u<=1){
+                    return {
+                        x: lerp(A.x, B.x, t),
+                        y: lerp(A.y, B.y, t),
+                        offset: t
+                    }
+                }
+            }
+            return null;
+        }
+
+        function lerp(A, B, t) {
+            return A + (B - A) * t;
+        }
+
+        //draw a circle with radius 10 at a point
+        function drawDot(point, label, isRed) {
+            ctx.beginPath();
+            ctx.fillStyle = isRed ? "red" : "white";
+            ctx.arc(point.x, point.y, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "black";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "bold 14px Arial";
+
+            ctx.fillText(label, point.x, point.y);
+        }
+
+    </script>
+</body>
+
+</html>
