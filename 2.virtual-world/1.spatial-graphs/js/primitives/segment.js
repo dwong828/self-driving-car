@@ -1,0 +1,25 @@
+class Segment {
+    constructor(p1, p2){
+        this.p1 = p1;
+        this.p2 = p2;
+    }
+
+    //check if segments are equal by checking if they contain the same 2 points
+    equals(segment){
+        return this.includes(segment.p1) && this.includes(segment.p2);
+    }
+
+    //check if a segment includes a point, in any order (in either p1 or p2)
+    includes(point){
+        return this.p1.equals(point) || this.p2.equals(point);
+    }
+
+    draw(ctx, width = 2, color = "black"){
+        ctx.beginPath();
+        ctx.lineWidth = width;
+        ctx.strokeStyle = color;
+        ctx.moveTo(this.p1.x, this.p1.y);
+        ctx.lineTo(this.p2.x, this.p2.y);
+        ctx.stroke();
+    }
+}
