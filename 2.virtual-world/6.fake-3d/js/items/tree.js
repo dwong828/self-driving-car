@@ -1,0 +1,69 @@
+class Tree {
+    constructor(center, size, heightCoef = 0.3){
+        this.center = center; //center Point
+        this.size = size;  //size of the tree base
+        this.heightCoef = heightCoef;  //affects height of tree
+        this.base = this.#generateLevel(center, size); //store base of tree to check for car collosions
+    }
+
+    #generateLevel(point, size){
+        const points = [];
+        const rad = size / 2;
+
+        for (let a=0; a < Math.PI * 2; a += Math.PI/16){
+
+            //get a pseudo random number between (0,1);
+            //can't use Math.random() since it will generate a new random number every iteration
+            //and the tress will never stop spinning
+            //this "kindOfRandom" number does not change unless the map is zoomed/dragged
+            const kindOfRandom = Math.cos(((a + this.center.x) * size) % 17) **2;
+
+            //offset radius by a random number between (0.5, 1)
+            const noisyRadius = rad * lerp(0.5, 1, kindOfRandom);
+
+            //generate a jagged circle
+            points.push(translate(point, a, noisyRadius));
+        }
+        return new Polygon(points);
+    }
+
+
+    //viewPoint: a Point at the center of the screen
+    draw(ctx, viewPoint){
+
+        //calculate distance from tree to the center of the screen
+        const diff = subtract(this.center, viewPoint);
+
+        //The height of the tree is proportional to the 
+        //distance of tree from center of screen
+        //trees that are farther from center of screen are taller
+        const top = add(this.center, scale(diff, this.heightCoef));
+
+        const levelCount = 7;
+        //draw tree.  
+        // level 0 = base;  level (levelCount-1) = top
+        for (let level=0; level<levelCount; level++){
+            const t = level / (levelCount - 1);
+
+            //get adjusted center of each level of the tree
+            const point = lerp2D(this.center, top, t);
+
+            //make each level of the tree a lighter shade of green
+            const color = "rgb(30," + lerp(50, 200, t) + ",70)";
+
+            //make each level of the tree smaller so it looks like a pyramid
+            const size = lerp(this.size, 40, t);
+
+            //draw a jagged shape for each tree level, rather than a circle
+            const poly = this.#generateLevel(point, size);
+            poly.draw(ctx, { fill: color, stroke: "rgba(0,0,0,0)" });
+
+            //debug:  draw each level of the tree as a circle
+            //point.draw(ctx, { size: size, color: color});
+        }
+
+        //debug: draw the trunk of the tree
+        //new Segment(this.center, top).draw(ctx);
+
+    }
+}
