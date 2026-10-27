@@ -1,8 +1,8 @@
 class Tree {
-    constructor(center, size, heightCoef = 0.3){
+    constructor(center, size, height = 200){
         this.center = center; //center Point
         this.size = size;  //size of the tree base
-        this.heightCoef = heightCoef;  //affects height of tree
+        this.height = height;  //height of tree
         this.base = this.#generateLevel(center, size); //store base of tree to check for car collosions
     }
 
@@ -31,13 +31,20 @@ class Tree {
     //viewPoint: a Point at the center of the screen
     draw(ctx, viewPoint){
 
-        //calculate distance from tree to the center of the screen
-        const diff = subtract(this.center, viewPoint);
+        
+        //Normalized direction of tree between (0, 1)
+        const dir = normalize(subtract(this.center, viewPoint));
+
+        //calculate scaler based on distance of tree from center of screen
+        const dist = distance(this.center, viewPoint);
+        //atan() returns a value between 0 and PI/2
+        //so, we divide by PI/2 to get a value between (0, 1)
+        //and divide the distance by 300 so the trees don't flip really fast when panning
+        const scaler = Math.atan(dist / 300) / (Math.PI / 2);  //value between (0, 1)
 
         //The height of the tree is proportional to the 
-        //distance of tree from center of screen
-        //trees that are farther from center of screen are taller
-        const top = add(this.center, scale(diff, this.heightCoef));
+        //distance of tree from center of screen (taller if farther from center of screen)
+        const top = add(this.center, scale(dir, this.height * scaler));
 
         const levelCount = 7;
         //draw tree.  

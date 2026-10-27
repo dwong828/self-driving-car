@@ -1,6 +1,6 @@
 class Envelope {
     constructor(skeleton, width, roundness = 1){
-        this.skeleton = skeleton;  //this is a graph Segment
+        this.skeleton = skeleton;  //this is a Graph Segment
 
         //these are the Points around the Envelope
         this.poly = this.#generatePolygon(width, roundness);
@@ -31,7 +31,7 @@ class Envelope {
             points.push(translate(p2, Math.PI + i, radius));
         }
 
-        //new Polygon with points (top left, bottom left, bottom right, top right)
+        //new Polygon with points (top left, top right, bottom right, bottom left)
         return new Polygon(points);
     }
 

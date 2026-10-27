@@ -106,3 +106,22 @@ function getRandomColor(){
     const hue = 290 + Math.random() * 260;
     return "hsl(" + hue + ", 100%, 60%)";
 }
+
+//scale a Point to figure out it's new scaled height, which depends on:
+//how far the Point is from the center of the screen
+function getFake3dPoint(point, viewPoint, height){
+    //normalized direction
+    const dir = normalize(subtract(point, viewPoint));
+
+    //get distance from point to viewPoint so we can calculate scaler factor
+    const dist = distance(point, viewPoint);
+
+    //now we calculate the scaler factor based on the distance
+    //atan() returns a value between 0 and PI/2, so we divide by PI/2 to get a value between (0, 1)
+    //Divide the distance by 300 so it is farther from PI/2, and it will dampen the "object flipping" effects of atan()
+    const scaler = Math.atan(dist/300) / (Math.PI/2);
+
+    //return the scaled Point
+    return add(point, scale(dir, height * scaler));
+
+}
