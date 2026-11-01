@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>World Editor</title>
+        <link rel="stylesheet" href="styles.css"/>
+    </head>
+    <body>
+        <h1>World Editor</h1>
+        <canvas id="myCanvas"></canvas>
+        <div id="controls">
+            <button onclick="dispose()">🗑️</button>
+            <button onclick="save()">💾</button>
+            &nbsp;
+            <button id="graphBtn" onclick="setMode('graph')">🌐</button>
+            <button id="stopBtn" onclick="setMode('stop')">🛑</button>
+            <button id="crossingBtn" onclick="setMode('crossing')">🚶</button>
+            <button id="startBtn" onclick="setMode('start')">🚙</button>
+
+        </div>
+
+        <script src="js/world.js"></script>
+        <script src="js/viewport.js"></script>
+        <script src="js/markings/marking.js"></script>
+        <script src="js/markings/crossing.js"></script>
+        <script src="js/markings/stop.js"></script>
+        <script src="js/markings/start.js"></script>
+
+        <script src="js/editors/markingEditor.js"></script>
+        <script src="js/editors/graphEditor.js"></script>
+        <script src="js/editors/crossingEditor.js"></script>
+        <script src="js/editors/stopEditor.js"></script>
+        <script src="js/editors/startEditor.js"></script>
+
+        <script src="js/items/tree.js"></script>
+        <script src="js/items/building.js"></script>
+        <script src="js/math/utils.js"></script>
+        <script src="js/math/graph.js"></script>
+        <script src="js/primitives/point.js"></script>
+        <script src="js/primitives/segment.js"></script>
+        <script src="js/primitives/polygon.js"></script>
+        <script src="js/primitives/envelope.js"></script>
+        <script>
+            myCanvas.width = 600;
+            myCanvas.height = 600;
+
+            const ctx = myCanvas.getContext("2d");
+
+            const graphString = localStorage.getItem("graph");
+            const graphInfo = graphString ? JSON.parse(graphString) : null;
+            const graph = graphInfo
+                ? Graph.load(graphInfo)
+                : new Graph();
+            const world = new World(graph);
+
+            const viewport = new Viewport(myCanvas);
+
+            const tools = {
+                graph: { button: graphBtn, editor: new GraphEditor(viewport, graph)},
+                stop: { button: stopBtn, editor: new StopEditor(viewport, world)},
+                crossing: { button: crossingBtn, editor: new CrossingEditor(viewport, world)},
+                start: { button: startBtn, editor: new StartEditor(viewport, world)}
+            }
+
+
+            let oldGraphHash = graph.hash();
+
+            //start in "graph" mode (not in "stop" mode where we edit markings)
+            setMode("graph");
+
+            animate();
+
+            function animate(){
+                viewport.reset();
+
+                //generate a new world ONLY if it has changed
+                //i.e. its hash is different
+                //this will save compute since we don't need to generate:
+                //trees, buildings, roadborders
+                if(graph.hash() != oldGraphHash){
+                    world.generate();
+                    oldGraphHash = graph.hash();
+                }
+
+                //use this viewPoint to add 3D effects (to trees, etc.)
+                //this should refer to the Point in the center of the screen
+                const viewPoint = scale(viewport.getOffset(), -1);
+
+                //draw world.
+                //viewPoint arg is used for 3D effects
+                world.draw(ctx, viewPoint);
+
+                //lower the alpha so that we can see the road markings
+                //underneath the graph editor 
+                ctx.globalAlpha = 0.3;
+                //call display() on all of the Editors
+                for (const tool of Object.values(tools) ){
+                    tool.editor.display();
+                }
+
+                //debug: draw roads around the graph Points
+                //new Envelope(graph.segments[0], 200, 20).draw(ctx);
+
+                //debug: draw a polygon around all of the graph Points
+                //new Polygon(graph.points).draw(ctx);
+
+                //recursively call animate() at 60 fps
+                requestAnimationFrame(animate);
+            }
+
+            function dispose(){
+                tools["graph"].editor.dispose();
+                world.markings.length = 0;
+            }
+
+            function save(){
+                localStorage.setItem("graph", JSON.stringify(graph));
+            }
+
+            function setMode(mode){
+                disableEditors();
+                tools[mode].button.style.backgroundColor = "white";
+                tools[mode].button.style.filter = "";
+                tools[mode].editor.enable();
+            }
+
+            //gray out editor buttons
+            function disableEditors(){
+                //change styling and call disable() on all Editors
+                for (const tool of Object.values(tools) ){
+                    tool.button.style.backgroundColor = "gray";
+                    tool.button.style.filter = "grayscale(100%)";
+
+                    tool.editor.disable();
+                }
+            }
+            
+        </script>
+    </body>
+</html>
