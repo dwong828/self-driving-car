@@ -1,0 +1,53 @@
+class Light extends Marking{
+    constructor(center, directionVector, width, height){
+        super(center, directionVector, width, 18);
+
+
+        this.state = "off";
+
+        //this is the edge of the light that is closest to the car 
+        //as it approaches the intersection
+        this.border = this.poly.segments[0];
+    }
+
+    //draw the traffic light
+    draw(ctx){
+        //get a perpendicular line to the direction vector
+        //i.e. it points across the width of the Road
+        const perp = perpendicular(this.directionVector);
+        const line = new Segment(
+            add(this.center, scale(perp, this.width/2)),
+            add(this.center, scale(perp, -this.width/2))
+        )
+
+        const green = lerp2D(line.p1, line.p2, 0.2);
+        const yellow = lerp2D(line.p1, line.p2, 0.5);
+        const red = lerp2D(line.p1, line.p2, 0.8);
+
+        new Segment(red, green).draw(ctx, {
+            width: this.height,  //width of the crossings = height of the Segment
+            cap: "round" //rounded corners for traffic light
+        });
+
+        green.draw(ctx, { size: this.height * 0.6, color: "#060"})
+        yellow.draw(ctx, { size: this.height * 0.6, color: "#660"})
+        red.draw(ctx, { size: this.height * 0.6, color: "#600"})
+
+        //debug
+        //this.border.draw(ctx, { color: "red"})
+
+        //turn one of the lights on
+        switch(this.state){
+            case "green":
+                green.draw(ctx, { size: this.height * 0.6, color: "#0F0"});
+                break;
+            case "yellow":
+                yellow.draw(ctx, { size: this.height * 0.6, color: "#FF0"});
+                break;
+            case "red":
+                red.draw(ctx, { size: this.height * 0.6, color: "#F00"});
+                break;
+
+        }
+    }
+}

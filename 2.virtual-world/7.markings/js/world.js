@@ -23,6 +23,8 @@ class World {
 
         this.markings = [];
 
+        this.frameCount = 0;
+
         this.generate();
     }
 
@@ -218,7 +220,95 @@ class World {
         return bases.map((b) => new Building(b));
     }
 
+    //Intersections are Points with degree > 2
+    //i.e. they have more then 2 roads connected to them
+    #getIntersections(){
+        const subset =  [];
+        for (const point of this.graph.points){
+            let degree = 0;
+            for (const seg of this.graph.segments){
+                if (seg.includes(point)){
+                    degree++;
+                }
+            }
+            //include Points with more than 2 degrees
+            //i.e. more then 2 roads connected to it
+            if (degree > 2){
+                subset.push(point);
+            }
+        }
+        return subset;
+    }
+
+
+
+
+    //logic for traffic lights to turn green/yellow/red
+    #updateLights(){
+        const lights = this.markings.filter(m => m instanceof Light);
+        const controlCenters = [];
+        for (const light of lights){
+            //find the nearest Point in the Graph to the light
+            const point = getNearestPoint(light.center, this.#getIntersections());
+            let controlCenter = controlCenters.find(c=>c.equals(point));
+
+            //add a new controlCenter at this Point, if it doesn't exist yet
+            if(!controlCenter){
+                controlCenter = new Point(point.x, point.y);
+                controlCenter.lights = [light];
+                controlCenters.push(controlCenter);
+            }
+            //if controlCenter already exists, then add the light to it
+            else{
+                controlCenter.lights.push(light);
+            }
+        }
+
+        //logic to turn lights from green to yellow
+        //change from green to yellow to red based on tick counts
+        const greenDuration=2, yellowDuration=1;
+        //each controlCenter.tick will depend on the number of lights attached to it
+        //and we have 3 ticks per light (3 ticks = 2 for gree + 1 for yellow)
+        for (const center of controlCenters){
+            center.ticks = center.lights.length * (greenDuration + yellowDuration);
+        }
+        //tick is between [0, 59]
+        const tick = Math.floor(this.frameCount / 60);
+
+        for (const center of controlCenters){
+            //cTick = current tick of the center
+            //e.g if there's 4 lights, then center.ticks = 12, and cTick is between [0, 11]
+            const cTick = tick % center.ticks;
+
+            //find index of light that should be either green/yellow
+            const greenYellowIndex = Math.floor(
+                cTick / (greenDuration + yellowDuration)
+            );
+
+            //should the light be green or yellow
+            const greenYellowState = 
+                cTick % (greenDuration + yellowDuration) < greenDuration 
+                    ? "green"
+                    : "yellow";
+
+            for (let i=0; i<center.lights.length; i++){
+                if (i == greenYellowIndex){
+                    center.lights[i].state = greenYellowState;
+                }
+                else{
+                    center.lights[i].state = "red";
+                }
+            }
+        }
+        this.frameCount++;
+    }
+
+
+
     draw(ctx, viewPoint){
+
+        this.#updateLights();
+
         //draw the road
         for (const env of this.envelopes){
             //make the lineWidth larger than the width of the road borders (below)
