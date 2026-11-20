@@ -1,0 +1,33 @@
+class Yield extends Marking{
+    constructor(center, directionVector, width, height){
+        super(center, directionVector, width, height);
+
+        this.border = this.poly.segments[2];
+        this.type = "yield";
+    }
+
+    //draw a rotated "YIELD" on the road
+    draw(ctx){
+
+        //debug
+        //this.poly.draw(ctx);
+
+        //put a white line ABOVE the "STOP" word
+        this.border.draw(ctx, { width: 5, color: "white" });
+        ctx.save();
+        ctx.translate(this.center.x, this.center.y);
+        //rotate the "STOP" word relative to Lane
+        ctx.rotate(angle(this.directionVector) - Math.PI/2);
+
+        //make the "STOP" word bigger, by a factor of 3
+        ctx.scale(1, 3);
+        ctx.beginPath();
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "white";
+        ctx.font = "bold " +  this.height * 0.3 + "px Arial";
+        ctx.fillText("YIELD", 0, 1);
+
+        ctx.restore();
+    }
+}
